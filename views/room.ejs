@@ -1,31 +1,461 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <script>
-    const ROOM_ID = "<%= roomId %>"
-  </script>
-  <script defer src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js"></script>
-  <script src="/socket.io/socket.io.js" defer></script>
-  <script src="script.js" defer></script>
-  <title>Room</title>
-  <style>
-    #video-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, 300px);
-      grid-auto-rows: 300px;
-    }
-    
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script>
+        const ROOM_ID = "<%= roomId %>"
+    </script>
+    <script defer src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js"></script>
+    <script src="/socket.io/socket.io.js" defer></script>
+    <script src="script.js" defer></script>
+    <title>Video Room</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .video-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+        }
+
+        #video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-auto-rows: minmax(300px, auto);
+            gap: 12px;
+            padding: 15px;
+            flex: 1;
+            overflow: auto;
+            background: #0a0a0a;
+        }
+
+        /* Full screen for single user */
+        #video-grid.single-user {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+        }
+
+        #video-grid.single-user video {
+            width: 100%;
+            height: 100%;
+            max-height: calc(100vh - 100px);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #222;
+            border-radius: 0;
+            display: block;
+        }
+
+        /* Video wrapper with name overlay */
+        .video-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #222;
+            width: 100%;
+            height: 100%;
+        }
+
+        .video-name {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
+            color: white;
+            padding: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+
+
+
+
+        .toolbar {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            border-top: 1px solid #333;
+        }
+
+        .toolbar button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            background: #667eea;
+            color: white;
+        }
+
+        .toolbar button:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+
+        .chat-section {
+            width: 300px;
+            background: #2a2a2a;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #444;
+        }
+
+        .chat-header {
+            padding: 15px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #444;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        #chatMessages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            padding: 10px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .message .sender {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .message .timestamp {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .chat-input-group {
+            padding: 12px;
+            background: #1a1a1a;
+            border-top: 1px solid #444;
+            display: flex;
+            gap: 8px;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background: #333;
+            color: white;
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        #messageInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #sendBtn {
+            padding: 10px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        #sendBtn:hover {
+            background: #764ba2;
+        }
+
+        .room-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        .room-info button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            margin-left: 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .chat-section {
+                width: 100%;
+                position: absolute;
+                bottom: 0;
+                max-height: 40%;
+                border-left: none;
+                border-top: 1px solid #444;
+            }
+
+            #video-grid {
+                max-height: 60%;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                grid-auto-rows: 150px;
+            }
+
+            .chat-toggle {
+                display: block;
+            }
+
+            .toolbar {
+                position: absolute;
+                bottom: 0;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #video-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                grid-auto-rows: 120px;
+                gap: 5px;
+                padding: 5px;
+            }
+
+            .chat-section {
+                max-height: 50%;
+            }
+
+            .room-info {
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+        }
+
+        /* Scrollbar styling */
+        #chatMessages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chatMessages::-webkit-scrollbar-track {
+            background: #333;
+        }
+
+        #chatMessages::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        #chatMessages::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            #video-grid {
+                grid-template-columns: 1fr;
+                grid-auto-rows: 400px;
+                gap: 8px;
+                padding: 8px;
+            }
+
+            .video-wrapper {
+                border-radius: 6px;
+            }
+
+            .video-name {
+                font-size: 11px;
+                padding: 8px;
+            }
+
+            .chat-section {
+                width: 100%;
+                position: fixed;
+                bottom: 0;
+                max-height: 35%;
+                border-left: none;
+                border-top: 1px solid #444;
+                z-index: 200;
+            }
+
+            #video-grid {
+                max-height: 65%;
+                margin-bottom: 0;
+            }
+
+            .toolbar {
+                position: static;
+                width: 100%;
+            }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+            #video-grid {
+                grid-template-columns: repeat(2, 1fr);
+                grid-auto-rows: 300px;
+                gap: 10px;
+            }
+
+            .chat-section {
+                width: 280px;
+            }
+
+            #chatMessages {
+                font-size: 13px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            #video-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                grid-auto-rows: minmax(300px, auto);
+            }
+
+            .video-wrapper {
+                min-height: 300px;
+            }
+        }
+
+        /* Dark mode optimizations */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #0a0a0a;
+            }
+
+            video {
+                background: #1a1a1a;
+            }
+        }
+    </style>
 </head>
+
 <body>
-  <div id="video-grid"></div>
+    <div class="container">
+        <!-- Video Section -->
+        <div class="video-section">
+            <div class="room-info">
+                Room: <strong id="roomDisplay">
+                    <%= roomId.substring(0, 8) %>...
+                </strong>
+                <button id="copyRoomBtn">Copy ID</button>
+            </div>
+            <div id="video-grid"></div>
+            <div class="toolbar">
+                <button id="toggleVideo">📹 Video Off</button>
+                <button id="toggleAudio">🔊 Audio Off</button>
+                <button id="leaveBtn" style="background: #f44336;">📞 Leave Call</button>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div class="chat-section" id="chatSection">
+            <div class="chat-header">
+                💬 Chat
+                <button class="chat-toggle" id="closeChatBtn">✕</button>
+            </div>
+            <div id="chatMessages"></div>
+            <div class="chat-input-group">
+                <input type="text" id="messageInput" placeholder="Type message...">
+                <button id="sendBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Store full room ID
+        const FULL_ROOM_ID = ROOM_ID;
+
+        // Room info
+        const roomDisplay = document.getElementById('roomDisplay');
+        roomDisplay.textContent = ROOM_ID.substring(0, 12) + '...';
+
+        const copyRoomBtn = document.getElementById('copyRoomBtn');
+        copyRoomBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(ROOM_ID).then(() => {
+                const originalText = copyRoomBtn.textContent;
+                copyRoomBtn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    copyRoomBtn.textContent = originalText;
+                }, 2000);
+            });
+        });
+
+        // Leave call
+        document.getElementById('leaveBtn').addEventListener('click', () => {
+            if (confirm('Leave this call?')) {
+                window.location.href = '/';
+            }
+        });
+
+        // Mobile chat toggle
+        const chatSection = document.getElementById('chatSection');
+        const closeChatBtn = document.getElementById('closeChatBtn');
+        if (window.innerWidth <= 768) {
+            closeChatBtn.style.display = 'block';
+            closeChatBtn.addEventListener('click', () => {
+                chatSection.style.display = 'none';
+            });
+        }
+    </script>
 </body>
+
 </html>

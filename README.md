@@ -1,6 +1,16 @@
 # Zoom Clone - Video Conferencing Application
 
-A real-time video conferencing application built with Node.js, Express, Socket.IO, and PeerJS. This application allows multiple users to join a room and have video calls with each other.
+A modern, real-time video conferencing application with instant messaging. Built with Node.js, Express, Socket.IO, and PeerJS. This application allows multiple users to join a room, have video calls, and chat with each other.
+
+## ✨ Features
+
+- 🎥 **HD Video Calls** - Crystal clear video streaming
+- 🔊 **Crystal Clear Audio** - High-quality audio transmission
+- 💬 **Instant Chat** - Real-time messaging within calls
+- 🎯 **Easy Room Sharing** - Generate and share room links with one click
+- 📱 **Mobile Responsive** - Works seamlessly on desktop and mobile
+- 🔐 **No Login Required** - Start chatting immediately
+- 👤 **Custom Usernames** - Set your name when joining
 
 ---
 
@@ -8,13 +18,14 @@ A real-time video conferencing application built with Node.js, Express, Socket.I
 
 ```
 zoom-clone/
-├── server.js          # Backend server
-├── package.json       # Project dependencies
+├── server.js                # Backend server with Socket.IO
+├── package.json             # Project dependencies
 ├── public/
-│   └── script.js      # Frontend video call logic
+│   └── script.js            # Frontend video & chat logic
 ├── views/
-│   └── room.ejs       # HTML template for video room
-└── README.md          # This file
+│   ├── index.ejs            # Home page (room creation/joining)
+│   └── room.ejs             # Video room with chat panel
+└── README.md                # This file
 ```
 
 ---
@@ -47,26 +58,57 @@ const { v4: uuidV4 } = require('uuid')       // Generate unique room IDs
 |----------|---------|
 | `app.set('view engine', 'ejs')` | Configure EJS as templating engine |
 | `app.use(express.static('public'))` | Serve static files from public folder |
-| `app.get('/', ...)` | **Root Route** - Generates new unique room ID and redirects user |
+| `app.use(express.json())` | Parse JSON request bodies |
+| `app.get('/', ...)` | **Root Route** - Renders home page with room creation/joining form |
+| `app.post('/create-room', ...)` | **Create Room** - Generates new unique room ID and returns link |
 | `app.get('/:room', ...)` | **Room Route** - Renders room.ejs template with room ID |
 | `io.on('connection', ...)` | **Socket Connection** - Handles user connection to server |
-| `socket.on('join-room', ...)` | **Join Room Event** - User joins specific room |
+| `socket.on('join-room', ...)` | **Join Room Event** - User joins specific room with ID and name |
 | `socket.join(roomId)` | Adds user socket to specified room |
-| `socket.to(roomId).emit('user-connected', userId)` | Notifies others when user joins |
+| `socket.to(roomId).emit('user-connected', userId, userName)` | Notifies others when user joins with their username |
+| `socket.on('send-message', ...)` | **Chat Message Event** - Receives message and broadcasts to room |
+| `socket.to(roomId).emit('receive-message', {...})` | Sends chat message to all users in room |
 | `socket.on('disconnect', ...)` | **Disconnect Event** - User leaves room |
-| `socket.to(roomId).emit('user-disconnected', userId)` | Notifies others when user leaves |
-| `server.listen(3000)` | Start server on port 3000 |
+| `socket.to(roomId).emit('user-disconnected', userId, userName)` | Notifies others when user leaves with their username |
+| `server.listen(port)` | Start server on PORT or 3000 |
 
 #### How It Works
-1. When user visits `/`, a unique room ID is generated and they are redirected to `/:room`
-2. Server renders room template with their unique room ID
-3. When user's WebSocket connects, server listens for 'join-room' event
-4. Once user joins, server notifies all other users in that room about the connection
-5. When user disconnects, server notifies remaining users in the room
+1. User visits `/` (home page) where they can create a new room or join existing one
+2. **Create Room**: Generates unique room ID and displays shareable link
+3. **Join Room**: User enters room ID to access an existing room
+4. Server renders room template with the room ID
+5. When user's WebSocket connects, server listens for 'join-room' event
+6. Once user joins, server notifies all other users in that room about the connection
+7. When user sends a message, server broadcasts it to all users in the room
+8. When user disconnects, server notifies remaining users
 
 ---
 
-### 2. **room.ejs** - HTML Template
+### 2. **index.ejs** - Home Page Template
+
+#### Purpose
+- Provides beautiful UI for creating or joining video conference rooms
+- Allows users to generate shareable room links
+- Displays room ID for easy sharing with one-click copy functionality
+
+#### Key Features
+
+| Feature | Purpose |
+|---------|---------|
+| **Create Room Button** | Generates new unique room ID via `/create-room` POST endpoint |
+| **Room Link Display** | Shows full URL that can be copied and shared |
+| **Room ID Display** | Shows just the ID (shorter than full URL) for sharing |
+| **Copy Buttons** | One-click copy to clipboard with confirmation |
+| **Join Room Input** | Text field to enter room ID and join existing room |
+| **Responsive Design** | Works on desktop, tablet, and mobile devices |
+| **Modern UI** | Gradient backgrounds, smooth animations, professional styling |
+
+#### Data Flow
+```
+User visits / → Renders index.ejs → User creates or joins room → Redirects to /:roomId → Loads room.ejs
+```
+
+---
 
 #### Purpose
 - Provides the UI structure for the video call room
@@ -91,7 +133,18 @@ Server renders room.ejs → ROOM_ID injected into page → Browser loads script.
 
 ---
 
-### 3. **script.js** - Frontend Video Call Logic
+### 3. **room.ejs** - Video Room Template
+
+#### New Features Added
+- **Chat Panel** - Sidebar with real-time messaging
+- **Room ID Display** - Shows current room ID with copy button  
+- **Video Controls** - Toggle video and audio on/off
+- **Leave Button** - Exit call and return to home
+- **Responsive Layout** - Adapts to mobile and desktop screens
+
+---
+
+### 3. **script.js** - Frontend Video Call & Chat Logic
 
 #### Initial Setup
 
@@ -100,27 +153,39 @@ const socket = io('/')                              // Connect to Socket.IO serv
 const videoGrid = document.getElementById('video-grid')  // Get video container
 const myPeer = new Peer()                           // Create peer instance (WebRTC)
 const myVideo = document.createElement('video')     // Create video element for user
-myVideo.muted = true                                // Mute own audio to prevent echo
 const peers = {}                                    // Store active peer connections
+const chatMessages = document.getElementById('chatMessages')  // Chat display area
+const messageInput = document.getElementById('messageInput')  // Chat input field
+let myUserName = prompt('Enter your name:')         // Get user's display name
 ```
 
 #### Functions
 
 | Function | Parameters | Purpose |
 |----------|-----------|---------|
+| **sendMessage()** | None | Gets message from input, sends to room, adds to own chat |
+| **addMessageToChat(sender, message, type)** | `sender` - User name, `message` - Text, `type` - 'own'/'other'/'system' | **Display Message** - Adds message to chat panel with sender name and timestamp |
 | **getUserMedia()** | `{video: true, audio: true}` | **Get User's Camera/Mic** - Requests browser permission to access camera and microphone |
 | **addVideoStream(video, stream)** | `video` - HTML element, `stream` - Media stream | **Display Video** - Sets video source and appends to grid |
 | **connectToNewUser(userId, stream)** | `userId` - New user ID, `stream` - User's media stream | **Call New User** - Initiates PeerJS call to newly connected user |
 
-#### Event Listeners
+#### Chat Event Listeners
+
+| Event | Triggered By | Action |
+|-------|--------------|--------|
+| `sendBtn.click` or `messageInput.keypress Enter` | User action | Calls `sendMessage()` to send chat message |
+| `socket.emit('send-message', roomId, message, userName)` | Client | Sends message to server to broadcast |
+| `socket.on('receive-message', data)` | Server (via Socket.IO) | Receives message from other users and displays it |
+
+#### Video Call Event Listeners
 
 | Event | Triggered By | Action |
 |-------|--------------|--------|
 | `navigator.mediaDevices.getUserMedia()` | Browser permission | Captures user's camera/microphone stream, displays own video |
 | `myPeer.on('call', ...)` | Remote user calls | Answers incoming call and displays remote user's video |
-| `socket.on('user-connected', ...)` | Server (via Socket.IO) | Someone joined the room → calls `connectToNewUser()` |
-| `socket.on('user-disconnected', ...)` | Server (via Socket.IO) | Someone left the room → closes their peer connection and removes video |
-| `myPeer.on('open', ...)` | PeerJS server | User gets assigned peer ID → emits 'join-room' to notify server |
+| `socket.on('user-connected', userId, userName)` | Server (via Socket.IO) | Someone joined the room → calls `connectToNewUser()` + shows system message |
+| `socket.on('user-disconnected', userId, userName)` | Server (via Socket.IO) | Someone left the room → closes their peer connection + shows system message |
+| `myPeer.on('open', ...)` | PeerJS server | User gets assigned peer ID → emits 'join-room' with user name |
 | `call.on('stream', ...)` | Remote user's media | Receives remote user's video stream and displays it |
 | `call.on('close', ...)` | Remote user disconnects | Removes remote user's video from DOM |
 | `video.addEventListener('loadedmetadata', ...)` | Video loaded | Starts playing video |
@@ -258,12 +323,14 @@ STEP 4: User A Disconnects
 ## 📡 Data Flow Summary
 
 ### Client → Server (Socket.IO)
-1. **'join-room'** → User sends room ID and peer ID when they join
-2. Server responds → Notifies other users in room
+1. **'join-room'** → User sends room ID, peer ID, and username when they join
+2. **'send-message'** → User sends chat message with room ID, message text, and username
+3. Server responds → Notifies other users in room
 
 ### Server → Client (Socket.IO)
-1. **'user-connected'** → Alerts existing users when new user joins
-2. **'user-disconnected'** → Alerts users when someone leaves
+1. **'user-connected'** → Alerts existing users when new user joins with their username
+2. **'user-disconnected'** → Alerts users when someone leaves with their username
+3. **'receive-message'** → Sends chat message to all users in room with sender info
 
 ### Peer to Peer (WebRTC)
 1. User A calls User B with their media stream

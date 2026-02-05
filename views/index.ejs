@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Conference - Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .section {
+            margin-bottom: 35px;
+        }
+
+        .section h2 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 2px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .input-group input {
+            flex: 1;
+        }
+
+        input[type="text"] {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="text"]:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+            padding: 13px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            flex: 1;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-copy {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 16px;
+            flex: 0 0 auto;
+        }
+
+        .btn-copy:hover {
+            background: #45a049;
+        }
+
+        .btn-enter {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+            padding: 13px;
+            margin-top: 15px;
+        }
+
+        .divider {
+            text-align: center;
+            color: #999;
+            margin: 30px 0;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 35%;
+            height: 1px;
+            background: #e0e0e0;
+        }
+
+        .divider::before {
+            left: 0;
+        }
+
+        .divider::after {
+            right: 0;
+        }
+
+        .room-link-container {
+            display: none;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .room-link-container.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .room-link-content {
+            margin-bottom: 15px;
+        }
+
+        .room-link-content label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .room-link-flex {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .room-link-flex input {
+            flex: 1;
+            font-size: 13px;
+        }
+
+        .success-message {
+            display: none;
+            color: #4CAF50;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            animation: fadeInOut 2s ease;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .error-message {
+            display: none;
+            color: #f44336;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .feature-list {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .feature {
+            flex: 1;
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .footer {
+            background: #f9f9f9;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 26px;
+            }
+
+            .content {
+                padding: 25px 20px;
+            }
+
+            .feature-list {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎥 Video Conference</h1>
+            <p>Connect with anyone, anywhere</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Create Room Section -->
+            <div class="section">
+                <h2>Create Room</h2>
+                <button class="btn-primary" id="createBtn">Generate New Room</button>
+                <div class="error-message" id="createError"></div>
+            </div>
+
+            <!-- Divider -->
+            <div class="divider">OR</div>
+
+            <!-- Join Room Section -->
+            <div class="section">
+                <h2>Join Room</h2>
+                <label class="input-label">Enter Room ID or Code</label>
+                <div class="input-group">
+                    <input type="text" id="roomInput" placeholder="e.g., abc123def456...">
+                    <button class="btn-secondary" id="joinBtn">Join</button>
+                </div>
+                <div class="error-message" id="joinError"></div>
+            </div>
+
+            <!-- Generated Room Link -->
+            <div class="room-link-container" id="roomLinkContainer">
+                <div class="room-link-content">
+                    <label>Your Room Link</label>
+                    <div class="room-link-flex">
+                        <input type="text" id="roomLinkInput" readonly>
+                        <button class="btn-copy" id="copyBtn" title="Copy to clipboard">📋</button>
+                    </div>
+                    <div class="success-message" id="successMessage">✓ Copied!</div>
+                </div>
+
+                <div class="room-link-content">
+                    <label>Room ID (Share this)</label>
+                    <div class="room-link-flex">
+                        <input type="text" id="roomIdInput" readonly>
+                        <button class="btn-copy" id="copyIdBtn" title="Copy Room ID">📋</button>
+                    </div>
+                </div>
+
+                <button class="btn-enter" id="enterBtn">Enter Room</button>
+            </div>
+
+            <!-- Features -->
+            <div class="feature-list">
+                <div class="feature">
+                    <div class="feature-icon">📹</div>
+                    <div>HD Video</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔊</div>
+                    <div>Crystal Clear Audio</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <div>Instant Chat</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            No account required • 100% Free • Works on Desktop & Mobile
+        </div>
+    </div>
+
+    <script>
+        const createBtn = document.getElementById('createBtn');
+        const joinBtn = document.getElementById('joinBtn');
+        const roomInput = document.getElementById('roomInput');
+        const copyBtn = document.getElementById('copyBtn');
+        const copyIdBtn = document.getElementById('copyIdBtn');
+        const enterBtn = document.getElementById('enterBtn');
+        const roomLinkContainer = document.getElementById('roomLinkContainer');
+        const roomLinkInput = document.getElementById('roomLinkInput');
+        const roomIdInput = document.getElementById('roomIdInput');
+        const successMessage = document.getElementById('successMessage');
+        const createError = document.getElementById('createError');
+        const joinError = document.getElementById('joinError');
+        let currentRoomId = '';
+
+        // Create Room
+        createBtn.addEventListener('click', async () => {
+            createBtn.disabled = true;
+            createBtn.textContent = 'Creating...';
+
+            try {
+                const response = await fetch('/create-room', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                currentRoomId = data.roomId;
+                roomLinkInput.value = data.roomLink;
+                roomIdInput.value = data.roomId;
+                roomLinkContainer.classList.add('show');
+                createError.classList.remove('show');
+            } catch (error) {
+                createError.textContent = '❌ Failed to create room. Please try again.';
+                createError.classList.add('show');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = 'Generate New Room';
+            }
+        });
+
+        // Join Room
+        joinBtn.addEventListener('click', () => {
+            const roomId = roomInput.value.trim();
+            if (!roomId) {
+                joinError.textContent = '❌ Please enter a room ID';
+                joinError.classList.add('show');
+                return;
+            }
+            joinError.classList.remove('show');
+            window.location.href = `/${roomId}`;
+        });
+
+        // Copy Link
+        copyBtn.addEventListener('click', () => {
+            roomLinkInput.select();
+            document.execCommand('copy');
+            successMessage.classList.add('show');
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 2000);
+        });
+
+        // Copy ID
+        copyIdBtn.addEventListener('click', () => {
+            roomIdInput.select();
+            document.execCommand('copy');
+            successMessage.classList.add('show');
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 2000);
+        });
+
+        // Enter Room
+        enterBtn.addEventListener('click', () => {
+            if (currentRoomId) {
+                window.location.href = `/${currentRoomId}`;
+            }
+        });
+
+        // Allow Enter key to join
+        roomInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinBtn.click();
+            }
+        });
+    </script>
+</body>
+
+</html>
